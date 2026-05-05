@@ -1,0 +1,7 @@
+.DS_Store
+node_modules
+gui/node_modules
+gui/scratch
+replace_files/*
+!replace_files/.gitkeep
+*.log

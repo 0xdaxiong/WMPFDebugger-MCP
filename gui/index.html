@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WMPF调试工具</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Title Bar -->
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-left">
+      <div class="titlebar-icon">🔧</div>
+      <span class="titlebar-title">WMPF Debugger</span>
+    </div>
+    <div class="titlebar-drag"></div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn btn-theme" id="btn-theme" title="切换主题">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn btn-minimize" id="btn-minimize" title="最小化">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn btn-maximize" id="btn-maximize" title="最大化">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn btn-close" id="btn-close" title="关闭">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <!-- Header -->
+    <div class="header-section">
+      <h1 class="app-title">WMPF Debugger<span class="version"> v0.1</span></h1>
+      <div class="status-area">
+        <span class="status-label">服务状态</span>
+        <span class="status-badge" id="status-badge">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">未运行</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar-row">
+      <button class="tool-btn btn-start" id="btn-start-f12">
+        <span class="btn-icon">▶</span>
+        <span class="btn-text">启动 F12</span>
+      </button>
+      <button class="tool-btn btn-stop" id="btn-stop-f12">
+        <span class="btn-icon">■</span>
+        <span class="btn-text">停止 F12</span>
+      </button>
+      <button class="tool-btn btn-default" id="btn-open-devtools">
+        <span class="btn-icon">🖥</span>
+        <span class="btn-text">DevTools</span>
+      </button>
+      <button class="tool-btn btn-default" id="btn-debug-webpage">
+        <span class="btn-icon">🌐</span>
+        <span class="btn-text">网页调试</span>
+        <span class="btn-badge">New</span>
+      </button>
+    </div>
+    <div class="toolbar-row">
+      <button class="tool-btn btn-default" id="btn-file-replace">
+        <span class="btn-icon">📁</span>
+        <span class="btn-text">文件替换</span>
+      </button>
+
+      <button class="tool-btn btn-default" id="btn-mcp">
+        <span class="btn-icon">⚙</span>
+        <span class="btn-text">MCP</span>
+      </button>
+      <button class="tool-btn btn-default" id="btn-clear-log">
+        <span class="btn-icon">🗑</span>
+        <span class="btn-text">清空日志</span>
+      </button>
+    </div>
+
+    <!-- Log -->
+    <div class="log-section">
+      <div class="log-header">
+        <h2 class="log-title">运行日志</h2>
+        <span class="log-count-badge" id="log-count-badge">
+          <span id="log-count">0</span> 条
+        </span>
+      </div>
+      <div class="log-container" id="log-container">
+        <div class="log-empty" id="log-empty">暂无日志</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MCP Modal -->
+  <div class="modal-overlay" id="mcp-modal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙ MCP 设置</h3>
+        <button class="modal-close" id="mcp-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="mcp-status-row">
+          <span class="mcp-label">MCP Server</span>
+          <span class="mcp-status" id="mcp-status">
+            <span class="mcp-status-dot" id="mcp-status-dot"></span>
+            <span id="mcp-status-text">未启动</span>
+          </span>
+          <button class="mcp-toggle-btn" id="mcp-toggle-btn">启动 MCP</button>
+        </div>
+        <div class="mcp-info-row">
+          <span class="mcp-label">CDP Port</span>
+          <span class="mcp-value">62000</span>
+        </div>
+        <div class="mcp-section">
+          <h4 class="mcp-section-title">可用工具 (48)</h4>
+          <div class="mcp-tools-list" id="mcp-tools-list"></div>
+          <script>
+            (function(){
+              var t=[
+                ['\u{1f4cc} 基础',[['evaluate_javascript','执行JS'],['get_page_info','页面信息'],['take_screenshot','截图'],['get_console_logs','控制台'],['send_cdp_command','原始CDP']]],
+                ['\u{1f310} DOM',[['get_dom_tree','DOM树'],['query_selector','查找'],['query_selector_all','查找全部'],['search_dom','搜索'],['set_attribute','改属性'],['remove_node','移除'],['set_outer_html','改HTML'],['click_element','点击'],['get_event_listeners','事件'],['call_function_on_element','执行函数']]],
+                ['\u{1f3a8} CSS',[['get_computed_styles','计算样式'],['get_element_box_model','盒模型']]],
+                ['\u{1f4c4} 页面',[['reload_page','重载'],['navigate_to','导航'],['get_performance_metrics','性能']]],
+                ['\u{1f4e1} 网络',[['get_network_requests','请求列表'],['enable_network_intercept','JS拦截'],['get_cookies','Cookie'],['set_cookie','设Cookie'],['delete_cookies','删Cookie'],['clear_browser_cache','清缓存'],['set_extra_http_headers','自定义头']]],
+                ['\u{1f500} Fetch',[['fetch_enable','协议拦截']]],
+                ['\u{2328}\u{fe0f} 输入',[['dispatch_mouse_event','鼠标'],['dispatch_key_event','键盘'],['type_text','文本']]],
+                ['\u{1f4f1} 仿真',[['set_user_agent','UA'],['set_device_metrics','屏幕'],['set_geolocation','定位']]],
+                ['\u{1f4be} 存储',[['get_storage_data','读'],['set_storage_item','写']]],
+                ['\u{1f5c4}\u{fe0f} IDB',[['indexeddb_list','列表'],['indexeddb_read','读取']]],
+                ['\u{1f3af} 目标',[['get_all_targets','列表'],['attach_to_target','附加']]],
+                ['\u{1f50d} Debug',[['debugger_enable','启用'],['debugger_get_script_source','源码'],['debugger_set_breakpoint_by_url','断点'],['debugger_remove_breakpoint','移除'],['debugger_pause','暂停'],['debugger_resume','恢复']]],
+                ['\u{1f527} Runtime',[['get_heap_usage','堆内存'],['get_object_properties','属性']]]
+              ];
+              var c=document.getElementById('mcp-tools-list');
+              t.forEach(function(g){
+                var h=document.createElement('div');
+                h.style.cssText='font-size:11px;color:#8899aa;margin:8px 0 4px;font-weight:600;grid-column:1/-1;';
+                h.textContent=g[0];
+                c.appendChild(h);
+                g[1].forEach(function(i){
+                  var d=document.createElement('div');
+                  d.className='mcp-tool-item';
+                  d.innerHTML='<span class="mcp-tool-name">'+i[0]+'</span><span class="mcp-tool-desc">'+i[1]+'</span>';
+                  c.appendChild(d);
+                });
+              });
+            })();
+          </script>
+        </div>
+        <div class="mcp-section">
+          <h4 class="mcp-section-title">AI 接入配置</h4>
+          <p class="mcp-hint">复制到 Claude Desktop / Cursor / Cline 的 MCP 配置中</p>
+          <div class="mcp-config-block">
+            <pre id="mcp-config-json"></pre>
+            <button class="mcp-copy-btn" id="mcp-copy-btn">📋 复制</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

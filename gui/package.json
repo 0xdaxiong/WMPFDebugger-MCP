@@ -1,0 +1,14 @@
+{
+  "name": "wmpf-debugger-gui",
+  "version": "2.2.4",
+  "description": "WMPF调试工具 GUI版",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "electron": "^33.3.1",
+    "ws": "^8.18.3"
+  }
+}
