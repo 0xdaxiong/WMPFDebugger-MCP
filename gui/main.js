@@ -1,10 +1,19 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const { fork, spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { EventEmitter } = require('events');
 const https = require('https');
 const WebSocket = require('ws');
+
+// New modules
+const RouteNavigator = require('./modules/route_navigator');
+const CloudAuditor = require('./modules/cloud_auditor');
+const AntiDebug = require('./modules/anti_debug');
+const UserScriptManager = require('./modules/userscript_manager');
+const SensitiveScanner = require('./modules/sensitive_scanner');
+const wxapkg = require('./modules/wxapkg_decrypt');
+const { platform } = require('./modules/platform');
 
 // ========== 全局状态 ==========
 let mainWindow = null;
@@ -24,6 +33,16 @@ const CDP_PORT = 62000;
 
 // 项目根目录
 const PROJECT_ROOT = path.join(__dirname, '..');
+
+// Feature module instances
+let routeNavigator = null;
+let cloudAuditor = null;
+let antiDebug = null;
+let userScriptManager = null;
+let sensitiveScanner = null;
+let autoVisitCancel = null;
+let lastScanResult = null;
+let selectedWxapkgPath = null;
 
 // ========== 日志系统 ==========
 let logRateCounter = 0;
@@ -501,10 +520,10 @@ function viewChangelog() {
 // ========== 创建窗口 ==========
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1060,
-    height: 720,
-    minWidth: 900,
-    minHeight: 600,
+    width: 1200,
+    height: 780,
+    minWidth: 1000,
+    minHeight: 650,
     frame: false,
     transparent: false,
     backgroundColor: '#0a0e17',
@@ -664,12 +683,314 @@ ipcMain.handle('start-mcp', () => startMcpServer());
 ipcMain.handle('stop-mcp', () => stopMcpServer());
 ipcMain.handle('get-mcp-status', () => isMcpRunning);
 
+// Platform info
+ipcMain.handle('get-platform-info', () => `${platform} (${process.arch})`);
+
+// ========== Route Navigator IPC ==========
+function getRouteNavigator() {
+  if (!routeNavigator) routeNavigator = new RouteNavigator(CDP_PORT);
+  return routeNavigator;
+}
+
+ipcMain.handle('routes-fetch', async () => {
+  try {
+    return await getRouteNavigator().fetchRoutes();
+  } catch (e) {
+    addLog('error', `[routes] ${e.message}`);
+    return { pages: [], tabBarPages: [], appInfo: {} };
+  }
+});
+
+ipcMain.handle('routes-navigate', async (_, route) => {
+  try {
+    await getRouteNavigator().navigateTo(route);
+    addLog('info', `[routes] navigated to: ${route}`);
+  } catch (e) {
+    addLog('error', `[routes] navigate error: ${e.message}`);
+  }
+});
+
+ipcMain.handle('routes-auto-visit', async () => {
+  try {
+    const nav = getRouteNavigator();
+    if (nav.pages.length === 0) await nav.fetchRoutes();
+    autoVisitCancel = { cancelled: false };
+    addLog('info', `[routes] auto-visit starting (${nav.pages.length} pages)`);
+    await nav.autoVisit(nav.pages, 2000, (current, total, route) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('auto-visit-progress', { current, total, route });
+      }
+    }, autoVisitCancel);
+    addLog('info', '[routes] auto-visit completed');
+  } catch (e) {
+    addLog('error', `[routes] auto-visit error: ${e.message}`);
+  }
+});
+
+ipcMain.handle('routes-stop-visit', () => {
+  if (autoVisitCancel) autoVisitCancel.cancelled = true;
+  addLog('info', '[routes] auto-visit stopped');
+});
+
+ipcMain.handle('routes-get-current', async () => {
+  try { return await getRouteNavigator().getCurrentRoute(); } catch { return ''; }
+});
+
+ipcMain.handle('routes-refresh', async () => {
+  try { await getRouteNavigator().refreshPage(); } catch (e) { addLog('error', `[routes] ${e.message}`); }
+});
+
+ipcMain.handle('routes-back', async () => {
+  try { await getRouteNavigator().navigateBack(); } catch (e) { addLog('error', `[routes] ${e.message}`); }
+});
+
+ipcMain.handle('routes-guard-enable', async () => {
+  try {
+    const res = await getRouteNavigator().enableRedirectGuard();
+    addLog('info', '[routes] redirect guard enabled');
+    return res;
+  } catch (e) { addLog('error', `[routes] ${e.message}`); return { ok: false }; }
+});
+
+ipcMain.handle('routes-guard-disable', async () => {
+  try {
+    await getRouteNavigator().disableRedirectGuard();
+    addLog('info', '[routes] redirect guard disabled');
+  } catch (e) { addLog('error', `[routes] ${e.message}`); }
+});
+
+// ========== Cloud Audit IPC ==========
+function getCloudAuditor() {
+  if (!cloudAuditor) cloudAuditor = new CloudAuditor(CDP_PORT);
+  return cloudAuditor;
+}
+
+ipcMain.handle('cloud-start', async () => {
+  try {
+    const res = await getCloudAuditor().start();
+    if (res.ok) addLog('success', '[cloud] hook started');
+    return res;
+  } catch (e) { addLog('error', `[cloud] ${e.message}`); return { ok: false }; }
+});
+
+ipcMain.handle('cloud-stop', async () => {
+  try {
+    await getCloudAuditor().stop();
+    addLog('info', '[cloud] hook stopped');
+  } catch (e) { addLog('error', `[cloud] ${e.message}`); }
+});
+
+ipcMain.handle('cloud-poll', async () => {
+  try { return await getCloudAuditor().poll(); } catch { return []; }
+});
+
+ipcMain.handle('cloud-static-scan', async () => {
+  try {
+    addLog('info', '[cloud] starting static scan...');
+    const results = await getCloudAuditor().staticScan((msg) => addLog('info', `[cloud] ${msg}`));
+    addLog('success', `[cloud] static scan complete: ${results.length} references found`);
+    return results;
+  } catch (e) { addLog('error', `[cloud] scan error: ${e.message}`); return []; }
+});
+
+ipcMain.handle('cloud-manual-call', async (_, name, data) => {
+  try {
+    addLog('info', `[cloud] calling function: ${name}`);
+    const res = await getCloudAuditor().manualCall(name, data);
+    addLog('info', `[cloud] call result: ${JSON.stringify(res).substring(0, 200)}`);
+    return res;
+  } catch (e) { addLog('error', `[cloud] call error: ${e.message}`); return { ok: false, error: e.message }; }
+});
+
+ipcMain.handle('cloud-clear', async () => {
+  try { await getCloudAuditor().clear(); } catch {}
+});
+
+// ========== wxapkg IPC ==========
+ipcMain.handle('wxapkg-locate', () => {
+  try {
+    const packages = wxapkg.findPackages();
+    addLog('info', `[wxapkg] found ${packages.length} packages`);
+    return packages;
+  } catch (e) { addLog('error', `[wxapkg] ${e.message}`); return []; }
+});
+
+ipcMain.handle('wxapkg-select', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择 wxapkg 文件',
+    filters: [{ name: 'wxapkg', extensions: ['wxapkg'] }],
+    properties: ['openFile'],
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    selectedWxapkgPath = result.filePaths[0];
+    addLog('info', `[wxapkg] selected: ${selectedWxapkgPath}`);
+    return selectedWxapkgPath;
+  }
+  return null;
+});
+
+ipcMain.handle('wxapkg-extract', async (_, appId) => {
+  try {
+    const wxapkgPath = selectedWxapkgPath;
+    if (!wxapkgPath) return { error: '请先选择 wxapkg 文件' };
+
+    const outputDir = path.join(PROJECT_ROOT, 'extracted', appId);
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    addLog('info', `[wxapkg] extracting to: ${outputDir}`);
+    const files = wxapkg.extractToDir(wxapkgPath, outputDir, appId);
+    addLog('success', `[wxapkg] extracted ${files.length} files`);
+    return { files, outputDir };
+  } catch (e) {
+    addLog('error', `[wxapkg] extract error: ${e.message}`);
+    return { error: e.message };
+  }
+});
+
+// ========== Scanner IPC ==========
+function getScanner() {
+  if (!sensitiveScanner) sensitiveScanner = new SensitiveScanner();
+  return sensitiveScanner;
+}
+
+ipcMain.handle('scan-select-dir', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择扫描目录',
+    properties: ['openDirectory'],
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    return result.filePaths[0];
+  }
+  return null;
+});
+
+ipcMain.handle('scan-start', async (_, dirPath) => {
+  try {
+    addLog('info', `[scanner] scanning: ${dirPath}`);
+    lastScanResult = await getScanner().scanDirectory(dirPath, {
+      onProgress: (data) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('scan-progress', data);
+        }
+      },
+    });
+    addLog('success', `[scanner] complete: ${lastScanResult.findings.length} findings in ${lastScanResult.scannedFiles} files`);
+    return lastScanResult;
+  } catch (e) {
+    addLog('error', `[scanner] error: ${e.message}`);
+    return null;
+  }
+});
+
+ipcMain.handle('scan-export-json', async () => {
+  if (!lastScanResult) return;
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '导出 JSON 报告',
+    defaultPath: 'scan_report.json',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  if (!result.canceled && result.filePath) {
+    getScanner().exportJson(lastScanResult, result.filePath);
+    addLog('info', `[scanner] exported JSON: ${result.filePath}`);
+  }
+});
+
+ipcMain.handle('scan-export-html', async () => {
+  if (!lastScanResult) return;
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '导出 HTML 报告',
+    defaultPath: 'scan_report.html',
+    filters: [{ name: 'HTML', extensions: ['html'] }],
+  });
+  if (!result.canceled && result.filePath) {
+    getScanner().exportHtml(lastScanResult, result.filePath);
+    addLog('info', `[scanner] exported HTML: ${result.filePath}`);
+  }
+});
+
+// ========== UserScript IPC ==========
+function getScriptManager() {
+  if (!userScriptManager) userScriptManager = new UserScriptManager(CDP_PORT);
+  return userScriptManager;
+}
+
+ipcMain.handle('scripts-reload', () => {
+  return getScriptManager().loadScripts().map(s => ({
+    name: s.name, description: s.description, match: s.match, runAt: s.runAt, enabled: s.enabled, filePath: s.filePath,
+  }));
+});
+
+ipcMain.handle('scripts-add', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '添加 UserScript',
+    filters: [{ name: 'JavaScript', extensions: ['js'] }],
+    properties: ['openFile', 'multiSelections'],
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    for (const fp of result.filePaths) {
+      getScriptManager().addScript(fp);
+      addLog('info', `[scripts] added: ${path.basename(fp)}`);
+    }
+    return getScriptManager().getScriptList();
+  }
+  return getScriptManager().getScriptList();
+});
+
+ipcMain.handle('scripts-remove', (_, name) => {
+  getScriptManager().removeScript(name);
+  addLog('info', `[scripts] removed: ${name}`);
+  return getScriptManager().getScriptList();
+});
+
+ipcMain.handle('scripts-toggle', (_, name, enabled) => {
+  getScriptManager().toggleScript(name, enabled);
+  return getScriptManager().getScriptList();
+});
+
+ipcMain.handle('scripts-inject', async () => {
+  try {
+    const mgr = getScriptManager();
+    if (mgr.scripts.length === 0) mgr.loadScripts();
+    const res = await mgr.injectAll();
+    addLog('success', `[scripts] injected ${res.injected}/${res.total} scripts`);
+    return res;
+  } catch (e) {
+    addLog('error', `[scripts] inject error: ${e.message}`);
+    return { injected: 0, total: 0 };
+  }
+});
+
+// ========== Anti-Debug IPC ==========
+function getAntiDebug() {
+  if (!antiDebug) antiDebug = new AntiDebug(CDP_PORT);
+  return antiDebug;
+}
+
+ipcMain.handle('antidebug-enable', async () => {
+  try {
+    const res = await getAntiDebug().enable();
+    addLog('success', '[anti-debug] enabled (Debugger.setSkipAllPauses)');
+    return res;
+  } catch (e) { addLog('error', `[anti-debug] ${e.message}`); return { ok: false }; }
+});
+
+ipcMain.handle('antidebug-disable', async () => {
+  try {
+    await getAntiDebug().disable();
+    addLog('info', '[anti-debug] disabled');
+  } catch (e) { addLog('error', `[anti-debug] ${e.message}`); }
+});
+
 // ========== App 生命周期 ==========
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   stopMcpServer();
   stopService();
+  if (routeNavigator) { routeNavigator.destroy(); routeNavigator = null; }
+  if (cloudAuditor) { cloudAuditor.destroy(); cloudAuditor = null; }
+  if (antiDebug) { antiDebug.destroy(); antiDebug = null; }
+  if (userScriptManager) { userScriptManager.destroy(); userScriptManager = null; }
   app.quit();
 });
 

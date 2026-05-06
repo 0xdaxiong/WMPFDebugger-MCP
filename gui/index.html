@@ -14,169 +14,303 @@
     <div class="titlebar-left">
       <div class="titlebar-icon">🔧</div>
       <span class="titlebar-title">WMPF Debugger</span>
+      <span class="titlebar-version">v2.0</span>
     </div>
     <div class="titlebar-drag"></div>
     <div class="titlebar-controls">
       <button class="titlebar-btn btn-theme" id="btn-theme" title="切换主题">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="5"/>
-          <line x1="12" y1="1" x2="12" y2="3"/>
-          <line x1="12" y1="21" x2="12" y2="23"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="1" y1="12" x2="3" y2="12"/>
-          <line x1="21" y1="12" x2="23" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
         </svg>
       </button>
       <button class="titlebar-btn btn-minimize" id="btn-minimize" title="最小化">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
+        <svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
       <button class="titlebar-btn btn-maximize" id="btn-maximize" title="最大化">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
-        </svg>
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
       </button>
       <button class="titlebar-btn btn-close" id="btn-close" title="关闭">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5"/>
-          <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
+        <svg width="12" height="12" viewBox="0 0 12 12"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
       </button>
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="main-container">
-    <!-- Header -->
-    <div class="header-section">
-      <h1 class="app-title">WMPF Debugger<span class="version"> v0.1</span></h1>
-      <div class="status-area">
-        <span class="status-label">服务状态</span>
-        <span class="status-badge" id="status-badge">
-          <span class="status-dot" id="status-dot"></span>
-          <span id="status-text">未运行</span>
-        </span>
+  <!-- App Layout -->
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-nav">
+        <button class="nav-item active" data-panel="home" title="控制台">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          <span>控制台</span>
+        </button>
+        <button class="nav-item" data-panel="routes" title="路由导航">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span>路由</span>
+        </button>
+        <button class="nav-item" data-panel="cloud" title="云函数审计">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+          <span>云审计</span>
+        </button>
+        <button class="nav-item" data-panel="wxapkg" title="包解密">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+          <span>解包</span>
+        </button>
+        <button class="nav-item" data-panel="scanner" title="敏感信息扫描">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>扫描</span>
+        </button>
+        <button class="nav-item" data-panel="scripts" title="UserScript">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span>脚本</span>
+        </button>
+        <button class="nav-item" data-panel="settings" title="设置">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>设置</span>
+        </button>
       </div>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="toolbar-row">
-      <button class="tool-btn btn-start" id="btn-start-f12">
-        <span class="btn-icon">▶</span>
-        <span class="btn-text">启动 F12</span>
-      </button>
-      <button class="tool-btn btn-stop" id="btn-stop-f12">
-        <span class="btn-icon">■</span>
-        <span class="btn-text">停止 F12</span>
-      </button>
-      <button class="tool-btn btn-default" id="btn-open-devtools">
-        <span class="btn-icon">🖥</span>
-        <span class="btn-text">DevTools</span>
-      </button>
-      <button class="tool-btn btn-default" id="btn-debug-webpage">
-        <span class="btn-icon">🌐</span>
-        <span class="btn-text">网页调试</span>
-        <span class="btn-badge">New</span>
-      </button>
-    </div>
-    <div class="toolbar-row">
-      <button class="tool-btn btn-default" id="btn-file-replace">
-        <span class="btn-icon">📁</span>
-        <span class="btn-text">文件替换</span>
-      </button>
-
-      <button class="tool-btn btn-default" id="btn-mcp">
-        <span class="btn-icon">⚙</span>
-        <span class="btn-text">MCP</span>
-      </button>
-      <button class="tool-btn btn-default" id="btn-clear-log">
-        <span class="btn-icon">🗑</span>
-        <span class="btn-text">清空日志</span>
-      </button>
-    </div>
-
-    <!-- Log -->
-    <div class="log-section">
-      <div class="log-header">
-        <h2 class="log-title">运行日志</h2>
-        <span class="log-count-badge" id="log-count-badge">
-          <span id="log-count">0</span> 条
-        </span>
-      </div>
-      <div class="log-container" id="log-container">
-        <div class="log-empty" id="log-empty">暂无日志</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MCP Modal -->
-  <div class="modal-overlay" id="mcp-modal" style="display:none;">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 class="modal-title">⚙ MCP 设置</h3>
-        <button class="modal-close" id="mcp-modal-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="mcp-status-row">
-          <span class="mcp-label">MCP Server</span>
-          <span class="mcp-status" id="mcp-status">
-            <span class="mcp-status-dot" id="mcp-status-dot"></span>
-            <span id="mcp-status-text">未启动</span>
-          </span>
-          <button class="mcp-toggle-btn" id="mcp-toggle-btn">启动 MCP</button>
+      <div class="sidebar-status">
+        <div class="status-dot-row">
+          <span class="status-indicator" id="st-frida" title="Frida"></span>
+          <span class="status-indicator" id="st-miniapp" title="小程序"></span>
+          <span class="status-indicator" id="st-devtools" title="DevTools"></span>
         </div>
-        <div class="mcp-info-row">
-          <span class="mcp-label">CDP Port</span>
-          <span class="mcp-value">62000</span>
-        </div>
-        <div class="mcp-section">
-          <h4 class="mcp-section-title">可用工具 (48)</h4>
-          <div class="mcp-tools-list" id="mcp-tools-list"></div>
-          <script>
-            (function(){
-              var t=[
-                ['\u{1f4cc} 基础',[['evaluate_javascript','执行JS'],['get_page_info','页面信息'],['take_screenshot','截图'],['get_console_logs','控制台'],['send_cdp_command','原始CDP']]],
-                ['\u{1f310} DOM',[['get_dom_tree','DOM树'],['query_selector','查找'],['query_selector_all','查找全部'],['search_dom','搜索'],['set_attribute','改属性'],['remove_node','移除'],['set_outer_html','改HTML'],['click_element','点击'],['get_event_listeners','事件'],['call_function_on_element','执行函数']]],
-                ['\u{1f3a8} CSS',[['get_computed_styles','计算样式'],['get_element_box_model','盒模型']]],
-                ['\u{1f4c4} 页面',[['reload_page','重载'],['navigate_to','导航'],['get_performance_metrics','性能']]],
-                ['\u{1f4e1} 网络',[['get_network_requests','请求列表'],['enable_network_intercept','JS拦截'],['get_cookies','Cookie'],['set_cookie','设Cookie'],['delete_cookies','删Cookie'],['clear_browser_cache','清缓存'],['set_extra_http_headers','自定义头']]],
-                ['\u{1f500} Fetch',[['fetch_enable','协议拦截']]],
-                ['\u{2328}\u{fe0f} 输入',[['dispatch_mouse_event','鼠标'],['dispatch_key_event','键盘'],['type_text','文本']]],
-                ['\u{1f4f1} 仿真',[['set_user_agent','UA'],['set_device_metrics','屏幕'],['set_geolocation','定位']]],
-                ['\u{1f4be} 存储',[['get_storage_data','读'],['set_storage_item','写']]],
-                ['\u{1f5c4}\u{fe0f} IDB',[['indexeddb_list','列表'],['indexeddb_read','读取']]],
-                ['\u{1f3af} 目标',[['get_all_targets','列表'],['attach_to_target','附加']]],
-                ['\u{1f50d} Debug',[['debugger_enable','启用'],['debugger_get_script_source','源码'],['debugger_set_breakpoint_by_url','断点'],['debugger_remove_breakpoint','移除'],['debugger_pause','暂停'],['debugger_resume','恢复']]],
-                ['\u{1f527} Runtime',[['get_heap_usage','堆内存'],['get_object_properties','属性']]]
-              ];
-              var c=document.getElementById('mcp-tools-list');
-              t.forEach(function(g){
-                var h=document.createElement('div');
-                h.style.cssText='font-size:11px;color:#8899aa;margin:8px 0 4px;font-weight:600;grid-column:1/-1;';
-                h.textContent=g[0];
-                c.appendChild(h);
-                g[1].forEach(function(i){
-                  var d=document.createElement('div');
-                  d.className='mcp-tool-item';
-                  d.innerHTML='<span class="mcp-tool-name">'+i[0]+'</span><span class="mcp-tool-desc">'+i[1]+'</span>';
-                  c.appendChild(d);
-                });
-              });
-            })();
-          </script>
-        </div>
-        <div class="mcp-section">
-          <h4 class="mcp-section-title">AI 接入配置</h4>
-          <p class="mcp-hint">复制到 Claude Desktop / Cursor / Cline 的 MCP 配置中</p>
-          <div class="mcp-config-block">
-            <pre id="mcp-config-json"></pre>
-            <button class="mcp-copy-btn" id="mcp-copy-btn">📋 复制</button>
+      </div>
+    </nav>
+
+    <!-- Panel Container -->
+    <main class="panel-container">
+      <!-- Home Panel -->
+      <section class="panel active" id="panel-home">
+        <div class="panel-header">
+          <h2>控制台</h2>
+          <div class="status-area">
+            <span class="status-badge" id="status-badge">
+              <span class="status-dot"></span>
+              <span id="status-text">未运行</span>
+            </span>
           </div>
         </div>
+        <div class="toolbar-row">
+          <button class="tool-btn btn-start" id="btn-start-f12"><span class="btn-icon">▶</span><span class="btn-text">启动 F12</span></button>
+          <button class="tool-btn btn-stop" id="btn-stop-f12"><span class="btn-icon">■</span><span class="btn-text">停止 F12</span></button>
+          <button class="tool-btn btn-default" id="btn-open-devtools"><span class="btn-icon">🖥</span><span class="btn-text">DevTools</span></button>
+          <button class="tool-btn btn-default" id="btn-debug-webpage"><span class="btn-icon">🌐</span><span class="btn-text">网页调试</span></button>
+          <button class="tool-btn btn-default" id="btn-file-replace"><span class="btn-icon">📁</span><span class="btn-text">文件替换</span></button>
+          <button class="tool-btn btn-default" id="btn-mcp"><span class="btn-icon">⚙</span><span class="btn-text">MCP</span></button>
+          <button class="tool-btn btn-default" id="btn-clear-log"><span class="btn-icon">🗑</span><span class="btn-text">清空日志</span></button>
+        </div>
+        <div class="log-section">
+          <div class="log-header">
+            <h3 class="log-title">运行日志</h3>
+            <span class="log-count-badge"><span id="log-count">0</span> 条</span>
+          </div>
+          <div class="log-container" id="log-container">
+            <div class="log-empty" id="log-empty">暂无日志</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Routes Panel -->
+      <section class="panel" id="panel-routes">
+        <div class="panel-header">
+          <h2>路由导航</h2>
+          <div class="panel-actions">
+            <button class="action-btn" id="btn-fetch-routes">刷新路由</button>
+            <button class="action-btn" id="btn-auto-visit">自动遍历</button>
+            <button class="action-btn" id="btn-stop-visit" style="display:none">停止遍历</button>
+          </div>
+        </div>
+        <div class="panel-toolbar">
+          <label class="toggle-label">
+            <input type="checkbox" id="chk-redirect-guard">
+            <span>防跳转保护</span>
+          </label>
+          <span class="info-text" id="routes-app-info"></span>
+        </div>
+        <div class="panel-body">
+          <div class="route-current">
+            <span class="label">当前路由:</span>
+            <span id="current-route">-</span>
+            <button class="small-btn" id="btn-refresh-page">刷新</button>
+            <button class="small-btn" id="btn-nav-back">返回</button>
+          </div>
+          <div class="progress-bar" id="routes-progress" style="display:none">
+            <div class="progress-fill" id="routes-progress-fill"></div>
+            <span class="progress-text" id="routes-progress-text"></span>
+          </div>
+          <div class="route-list" id="route-list">
+            <div class="empty-state">点击"刷新路由"获取小程序页面列表</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cloud Audit Panel -->
+      <section class="panel" id="panel-cloud">
+        <div class="panel-header">
+          <h2>云函数审计</h2>
+          <div class="panel-actions">
+            <button class="action-btn" id="btn-cloud-start">启动 Hook</button>
+            <button class="action-btn" id="btn-cloud-stop" style="display:none">停止 Hook</button>
+            <button class="action-btn" id="btn-cloud-scan">静态扫描</button>
+            <button class="action-btn" id="btn-cloud-clear">清空</button>
+          </div>
+        </div>
+        <div class="panel-toolbar">
+          <button class="action-btn" id="btn-cloud-call">手动调用</button>
+          <span class="info-text" id="cloud-status">未启动</span>
+        </div>
+        <div class="panel-body">
+          <div class="data-table-wrap">
+            <table class="data-table" id="cloud-table">
+              <thead><tr><th>时间</th><th>类型</th><th>名称</th><th>参数</th><th>结果</th></tr></thead>
+              <tbody id="cloud-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="cloud-empty">启动 Hook 后，云函数调用将在此显示</div>
+        </div>
+      </section>
+
+      <!-- wxapkg Panel -->
+      <section class="panel" id="panel-wxapkg">
+        <div class="panel-header">
+          <h2>包解密解包</h2>
+          <div class="panel-actions">
+            <button class="action-btn" id="btn-wxapkg-locate">自动定位</button>
+            <button class="action-btn" id="btn-wxapkg-select">选择文件</button>
+            <button class="action-btn" id="btn-wxapkg-extract">解密解包</button>
+          </div>
+        </div>
+        <div class="panel-toolbar">
+          <div class="input-group">
+            <label>AppID:</label>
+            <input type="text" id="wxapkg-appid" placeholder="wx1234567890abcdef" class="input-field">
+          </div>
+          <span class="info-text" id="wxapkg-status"></span>
+        </div>
+        <div class="panel-body">
+          <div class="file-list" id="wxapkg-packages">
+            <div class="empty-state">点击"自动定位"查找本地小程序包，或"选择文件"手动选择</div>
+          </div>
+          <div class="file-tree" id="wxapkg-tree" style="display:none">
+            <h3>解包文件列表</h3>
+            <div id="wxapkg-tree-content"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scanner Panel -->
+      <section class="panel" id="panel-scanner">
+        <div class="panel-header">
+          <h2>敏感信息扫描</h2>
+          <div class="panel-actions">
+            <button class="action-btn" id="btn-scan-dir">选择目录</button>
+            <button class="action-btn" id="btn-scan-start">开始扫描</button>
+            <button class="action-btn" id="btn-scan-export-json">导出 JSON</button>
+            <button class="action-btn" id="btn-scan-export-html">导出 HTML</button>
+          </div>
+        </div>
+        <div class="panel-toolbar">
+          <span class="info-text" id="scan-dir-path">未选择目录</span>
+          <div class="progress-bar" id="scan-progress" style="display:none">
+            <div class="progress-fill" id="scan-progress-fill"></div>
+            <span class="progress-text" id="scan-progress-text"></span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="scan-summary" id="scan-summary" style="display:none"></div>
+          <div class="data-table-wrap">
+            <table class="data-table" id="scan-table" style="display:none">
+              <thead><tr><th>严重性</th><th>类别</th><th>规则</th><th>匹配值</th><th>位置</th></tr></thead>
+              <tbody id="scan-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="scan-empty">选择目录后点击"开始扫描"</div>
+        </div>
+      </section>
+
+      <!-- Scripts Panel -->
+      <section class="panel" id="panel-scripts">
+        <div class="panel-header">
+          <h2>UserScript 管理</h2>
+          <div class="panel-actions">
+            <button class="action-btn" id="btn-scripts-add">添加脚本</button>
+            <button class="action-btn" id="btn-scripts-inject">注入全部</button>
+            <button class="action-btn" id="btn-scripts-reload">重新加载</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="script-list" id="script-list">
+            <div class="empty-state">将 .js 脚本放入 userscripts/ 目录，或点击"添加脚本"</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Panel -->
+      <section class="panel" id="panel-settings">
+        <div class="panel-header">
+          <h2>设置</h2>
+        </div>
+        <div class="panel-body settings-body">
+          <div class="settings-group">
+            <h3>调试选项</h3>
+            <label class="toggle-label">
+              <input type="checkbox" id="chk-antidebug">
+              <span>反调试绕过 (Debugger.setSkipAllPauses)</span>
+            </label>
+          </div>
+          <div class="settings-group">
+            <h3>端口配置</h3>
+            <div class="input-group">
+              <label>CDP 端口:</label>
+              <input type="number" id="settings-cdp-port" value="62000" class="input-field" style="width:100px">
+            </div>
+          </div>
+          <div class="settings-group">
+            <h3>MCP 服务</h3>
+            <div class="mcp-status-row">
+              <span class="mcp-status-dot" id="mcp-status-dot"></span>
+              <span id="mcp-status-text">未启动</span>
+              <button class="action-btn" id="mcp-toggle-btn">启动 MCP</button>
+            </div>
+            <div class="mcp-config-block" style="margin-top:12px">
+              <pre id="mcp-config-json" class="config-pre"></pre>
+              <button class="small-btn" id="mcp-copy-btn">复制配置</button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <h3>平台信息</h3>
+            <div class="info-row"><span>系统:</span><span id="settings-platform">-</span></div>
+            <div class="info-row"><span>版本:</span><span id="settings-version">v2.0</span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Cloud Call Modal -->
+  <div class="modal-overlay" id="cloud-call-modal" style="display:none">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3>手动调用云函数</h3>
+        <button class="modal-close" id="cloud-call-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group" style="margin-bottom:12px">
+          <label>函数名:</label>
+          <input type="text" id="cloud-call-name" class="input-field" placeholder="functionName">
+        </div>
+        <div class="input-group">
+          <label>参数 (JSON):</label>
+          <textarea id="cloud-call-data" class="input-field textarea" placeholder='{"key": "value"}'></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="action-btn" id="cloud-call-submit">调用</button>
+        </div>
+        <pre id="cloud-call-result" class="config-pre" style="margin-top:12px;display:none"></pre>
       </div>
     </div>
   </div>

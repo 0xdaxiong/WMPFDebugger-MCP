@@ -489,6 +489,87 @@ const MCP_TOOLS = [
     name: 'fetch_enable',
     description: '启用协议级请求拦截(可修改请求/响应), 禁用请用send_cdp_command调Fetch.disable',
     inputSchema: { type: 'object', properties: { patterns: { type: 'array', items: { type: 'object', properties: { urlPattern: { type: 'string' }, requestStage: { type: 'string', description: 'Request或Response' } } }, description: '拦截模式, 为空则拦截所有' } } }
+  },
+  // ===== New tools: Route Navigator =====
+  {
+    name: 'miniapp_get_routes',
+    description: '获取小程序所有页面路由列表、TabBar页面和应用信息',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'miniapp_navigate',
+    description: '导航到指定小程序页面路由',
+    inputSchema: { type: 'object', properties: { route: { type: 'string', description: '目标页面路由，如 pages/index/index' } }, required: ['route'] }
+  },
+  {
+    name: 'miniapp_get_current_route',
+    description: '获取当前小程序页面路由',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'miniapp_auto_visit',
+    description: '自动遍历所有小程序页面（用于触发网络请求、发现接口）',
+    inputSchema: { type: 'object', properties: { delay: { type: 'number', description: '每个页面停留时间(ms)', default: 2000 } } }
+  },
+  // ===== New tools: Cloud Audit =====
+  {
+    name: 'cloud_start_hook',
+    description: '启动云函数调用Hook，拦截wx.cloud.callFunction',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'cloud_get_calls',
+    description: '获取已捕获的云函数调用列表',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'cloud_static_scan',
+    description: '静态扫描所有JS脚本，提取云函数引用、数据库collection、存储操作',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'cloud_manual_call',
+    description: '手动调用指定云函数并返回结果',
+    inputSchema: { type: 'object', properties: { name: { type: 'string', description: '云函数名称' }, data: { type: 'object', description: '调用参数', default: {} } }, required: ['name'] }
+  },
+  // ===== New tools: wxapkg =====
+  {
+    name: 'wxapkg_list_packages',
+    description: '列出本地微信小程序包文件(.wxapkg)',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'wxapkg_decrypt',
+    description: '解密并解包wxapkg文件，返回提取的文件列表',
+    inputSchema: { type: 'object', properties: { path: { type: 'string', description: 'wxapkg文件路径' }, appId: { type: 'string', description: '小程序AppID (如 wx1234567890abcdef)' }, outputDir: { type: 'string', description: '输出目录路径' } }, required: ['path', 'appId', 'outputDir'] }
+  },
+  // ===== New tools: Scanner =====
+  {
+    name: 'scan_directory',
+    description: '扫描目录中的敏感信息（密钥、Token、PII等）',
+    inputSchema: { type: 'object', properties: { path: { type: 'string', description: '要扫描的目录路径' } }, required: ['path'] }
+  },
+  {
+    name: 'scan_wxapkg',
+    description: '一键解密解包wxapkg并扫描敏感信息',
+    inputSchema: { type: 'object', properties: { wxapkgPath: { type: 'string', description: 'wxapkg文件路径' }, appId: { type: 'string', description: '小程序AppID' } }, required: ['wxapkgPath', 'appId'] }
+  },
+  // ===== New tools: UserScript =====
+  {
+    name: 'userscript_list',
+    description: '列出已加载的UserScript脚本',
+    inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'userscript_inject',
+    description: '注入JavaScript代码到小程序（包裹在IIFE中）',
+    inputSchema: { type: 'object', properties: { source: { type: 'string', description: 'JavaScript源代码' }, persistent: { type: 'boolean', description: '是否在新页面加载时自动注入', default: false } }, required: ['source'] }
+  },
+  // ===== New tools: Anti-Debug =====
+  {
+    name: 'antidebug_toggle',
+    description: '切换反调试绕过（Debugger.setSkipAllPauses）',
+    inputSchema: { type: 'object', properties: { enable: { type: 'boolean', description: 'true启用绕过，false禁用' } }, required: ['enable'] }
   }
 ];
 
@@ -1177,6 +1258,194 @@ async function executeTool(name, args) {
         hitCount: n.hitCount,
       }));
       return { totalSamples: profile.samples?.length || 0, duration: `${((profile.endTime - profile.startTime) / 1000).toFixed(1)}ms`, topFunctions: hotFuncs };
+    }
+
+    // ===== Route Navigator =====
+    case 'miniapp_get_routes': {
+      const RouteNavigator = require('./modules/route_navigator');
+      const nav = new RouteNavigator(CDP_PORT);
+      try {
+        const data = await nav.fetchRoutes();
+        return data;
+      } finally {
+        nav.cdp.disconnect();
+      }
+    }
+
+    case 'miniapp_navigate': {
+      const RouteNavigator = require('./modules/route_navigator');
+      const nav = new RouteNavigator(CDP_PORT);
+      try {
+        await nav.navigateTo(args.route);
+        return { success: true, route: args.route };
+      } finally {
+        nav.cdp.disconnect();
+      }
+    }
+
+    case 'miniapp_get_current_route': {
+      const RouteNavigator = require('./modules/route_navigator');
+      const nav = new RouteNavigator(CDP_PORT);
+      try {
+        const route = await nav.getCurrentRoute();
+        return { route };
+      } finally {
+        nav.cdp.disconnect();
+      }
+    }
+
+    case 'miniapp_auto_visit': {
+      const RouteNavigator = require('./modules/route_navigator');
+      const nav = new RouteNavigator(CDP_PORT);
+      try {
+        const routeData = await nav.fetchRoutes();
+        if (!routeData.pages || routeData.pages.length === 0) {
+          return { error: 'No routes found. Make sure a miniapp is connected.' };
+        }
+        const delay = args.delay || 2000;
+        const visited = [];
+        for (const page of routeData.pages) {
+          try {
+            await nav.safeNavigate(page);
+            visited.push(page);
+            await new Promise(r => setTimeout(r, delay));
+          } catch {}
+        }
+        return { success: true, visited, total: routeData.pages.length };
+      } finally {
+        nav.cdp.disconnect();
+      }
+    }
+
+    // ===== Cloud Audit =====
+    case 'cloud_start_hook': {
+      const CloudAuditor = require('./modules/cloud_auditor');
+      const cloud = new CloudAuditor(CDP_PORT);
+      try {
+        const result = await cloud.start();
+        return result;
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
+    case 'cloud_get_calls': {
+      const CloudAuditor = require('./modules/cloud_auditor');
+      const cloud = new CloudAuditor(CDP_PORT);
+      try {
+        const calls = await cloud.poll();
+        return { calls };
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
+    case 'cloud_static_scan': {
+      const CloudAuditor = require('./modules/cloud_auditor');
+      const cloud = new CloudAuditor(CDP_PORT);
+      try {
+        const results = await cloud.staticScan();
+        return results;
+      } finally {
+        cloud.cdp.disconnect();
+      }
+    }
+
+    case 'cloud_manual_call': {
+      const CloudAuditor = require('./modules/cloud_auditor');
+      const cloud = new CloudAuditor(CDP_PORT);
+      try {
+        const result = await cloud.manualCall(args.name, args.data || {});
+        return result;
+      } finally {
+        cloud.cdp.disconnect();
+      }
+    }
+
+    // ===== wxapkg =====
+    case 'wxapkg_list_packages': {
+      const wxapkg = require('./modules/wxapkg_decrypt');
+      const packages = wxapkg.findPackages();
+      return { packages };
+    }
+
+    case 'wxapkg_decrypt': {
+      const wxapkg = require('./modules/wxapkg_decrypt');
+      const fs = require('fs');
+      try {
+        const data = fs.readFileSync(args.path);
+        const result = wxapkg.extractToDir(data, args.outputDir, args.appId);
+        return { success: true, files: result };
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
+    // ===== Scanner =====
+    case 'scan_directory': {
+      const SensitiveScanner = require('./modules/sensitive_scanner');
+      const scanner = new SensitiveScanner();
+      try {
+        const result = await scanner.scanDirectory(args.path);
+        return result;
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
+    case 'scan_wxapkg': {
+      const wxapkg = require('./modules/wxapkg_decrypt');
+      const SensitiveScanner = require('./modules/sensitive_scanner');
+      const fs = require('fs');
+      const os = require('os');
+      const path = require('path');
+      try {
+        const data = fs.readFileSync(args.wxapkgPath);
+        const tmpDir = path.join(os.tmpdir(), `wxapkg_scan_${Date.now()}`);
+        fs.mkdirSync(tmpDir, { recursive: true });
+        wxapkg.extractToDir(data, tmpDir, args.appId);
+        const scanner = new SensitiveScanner();
+        const result = await scanner.scanDirectory(tmpDir);
+        return result;
+      } catch (e) {
+        return { error: e.message };
+      }
+    }
+
+    // ===== UserScript =====
+    case 'userscript_list': {
+      const UserScriptManager = require('./modules/userscript_manager');
+      const mgr = new UserScriptManager(CDP_PORT);
+      const scripts = mgr.listScripts();
+      return { scripts };
+    }
+
+    case 'userscript_inject': {
+      const source = args.source;
+      const wrapped = `(function(){try{${source}}catch(e){console.error('[UserScript]',e)}})();`;
+      if (args.persistent) {
+        const result = await sendCDPCommand('Page.addScriptToEvaluateOnNewDocument', { source: wrapped });
+        return { success: true, persistent: true, identifier: result.result?.identifier };
+      } else {
+        const result = await sendCDPCommand('Runtime.evaluate', {
+          expression: wrapped,
+          returnByValue: true,
+          awaitPromise: false,
+        });
+        return { success: true, persistent: false, result: result.result?.result };
+      }
+    }
+
+    // ===== Anti-Debug =====
+    case 'antidebug_toggle': {
+      if (args.enable) {
+        await sendCDPCommand('Debugger.enable', {});
+        await sendCDPCommand('Debugger.setSkipAllPauses', { skip: true });
+        return { success: true, enabled: true, message: 'Anti-debug bypass enabled (setSkipAllPauses)' };
+      } else {
+        await sendCDPCommand('Debugger.setSkipAllPauses', { skip: false });
+        return { success: true, enabled: false, message: 'Anti-debug bypass disabled' };
+      }
     }
 
     default:
