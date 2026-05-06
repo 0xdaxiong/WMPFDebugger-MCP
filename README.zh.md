@@ -1,9 +1,34 @@
-# WMPFDebugger
+# WMPFDebugger-MCP
 
-又一个 Windows 微信小程序调试工具
+微信小程序安全审计与调试平台（Windows / macOS）
 
-这个工具通过 patch 一些 Chrome 调试协议（CDP）的过滤器和其他的条件判断来强制小程序连接到外部调试器（也就是远程调试，LanDebug 模式）。这个调试协议是基于 protobuf 实现的私有协议，通过逆向开发者工具提取相应的协议实现，该工具实现了一个简单的小程序调试协议转换为标准 Chrome 调试协议，从而允许我们使用标准基于 chromium 浏览器的内嵌开发者工具来调试任意小程序
+基于 Frida + CDP 协议的小程序动态调试工具，集成安全审计功能和 MCP（Model Context Protocol）AI 工具接口。
 
+## 功能特性
+
+**核心调试**
+- Frida 动态注入 WeChatAppEx，强制开启远程调试（LanDebug 模式）
+- 私有 protobuf 协议转标准 Chrome DevTools Protocol
+- 支持 DevTools 全功能调试（Console、Sources、Network、DOM 等）
+- 支持 Windows 和 macOS 双平台
+
+**安全审计工具**
+- **路由导航** — 自动枚举小程序所有页面路由，一键遍历触发接口
+- **云函数审计** — Hook `wx.cloud.callFunction`，捕获/重放云函数调用，静态扫描脚本源码
+- **wxapkg 解密解包** — V1MMWX 格式解密（AES-256-CBC + XOR），自动定位本地包文件
+- **敏感信息扫描** — 87+ 正则规则检测 API Key、Token、PII、数据库连接串等
+- **UserScript 注入** — Tampermonkey 风格脚本管理，支持持久化注入
+- **反调试绕过** — `Debugger.setSkipAllPauses` 自动绕过 debugger 断点
+
+**MCP AI 工具桥接**
+- 63 个 MCP 工具，覆盖 DOM 操作、网络拦截、存储读写、截图、性能分析等
+- 支持 Cursor、Claude Code 等 AI 工具直接调用
+- stdio JSON-RPC 协议，零配置接入
+
+**Electron GUI**
+- 侧边栏多面板布局（控制台、路由、云审计、解包、扫描、脚本、设置）
+- 实时日志流、进度条、数据表格
+- Premium 暗色主题 + Glassmorphism 风格
 
 ## 支持状态
 
@@ -61,37 +86,89 @@
 
 ## 准备
 
-* node.js (需要至少 LTS v22)
+* Node.js (需要至少 LTS v22)
     - yarn 包管理器
-* 基于的 chromium 浏览器，例如 Chrome, Edge, 等等
+* 基于 Chromium 的浏览器（Chrome, Edge 等）
+* Frida（通过 npm 自动安装）
 
 ## 使用
 
-**第 1 步** 克隆并安装依赖
+**方式一：Electron GUI（推荐）**
 
 ```bash
-git clone https://github.com/evi0s/WMPFDebugger
-cd WMPFDebugger
+git clone https://github.com/0xdaxiong/WMPFDebugger-MCP
+cd WMPFDebugger-MCP
 yarn
+
+# 启动 GUI
+cd gui && npm start
 ```
 
-**第 2 步** 运行 `src/index.ts`。该命令会启动调试服务器和 CDP 代理服务器，同时相关 hook 代码也会被自动注入到小程序运行时中
+GUI 启动后点击「启动 F12」即可自动注入并开启调试。所有安全审计功能通过侧边栏面板操作。
+
+**方式二：命令行**
 
 ```bash
+git clone https://github.com/0xdaxiong/WMPFDebugger-MCP
+cd WMPFDebugger-MCP
+yarn
+
+# 启动调试服务器 + CDP 代理
 npx ts-node src/index.ts
 ```
 
-> 注意: 在这个步骤之后，你需要先启动小程序（第三步），再打开开发者工具（第四步）。如果操作顺序反了你可能需要从重新第二步开始
+启动后打开小程序，然后访问 `devtools://devtools/bundled/inspector.html?ws=127.0.0.1:62000`
 
-**第 3 步** 打开任意你想调试的小程序
+**方式三：MCP 接入 AI 工具**
 
-**第 4 步** 打开浏览器，访问 `devtools://devtools/bundled/inspector.html?ws=127.0.0.1:62000` 即可。你也可以将 CDP 端口（在例子中为 62000）修改到任意其他端口。相关代码定义在 `src/index.ts` 中
+在 AI 工具（Cursor / Claude Code）的 MCP 配置中添加：
+
+```json
+{
+  "mcpServers": {
+    "wmpf-debugger": {
+      "command": "node",
+      "args": ["gui/mcp_bridge.js"]
+    }
+  }
+}
+```
+
+## 项目结构
+
+```
+├── src/                    # 核心调试服务（TypeScript）
+├── frida/                  # Frida hook 脚本 + 版本配置
+│   ├── hook.js
+│   └── config/             # 各版本地址配置（含 mac/）
+├── gui/                    # Electron GUI + MCP Bridge
+│   ├── main.js             # 主进程
+│   ├── mcp_bridge.js       # MCP 工具服务器（63 tools）
+│   ├── modules/            # 功能模块
+│   │   ├── cdp_client.js       # CDP WebSocket 客户端
+│   │   ├── route_navigator.js  # 路由导航
+│   │   ├── cloud_auditor.js    # 云函数审计
+│   │   ├── wxapkg_decrypt.js   # wxapkg 解密解包
+│   │   ├── sensitive_scanner.js # 敏感信息扫描
+│   │   ├── userscript_manager.js # UserScript 管理
+│   │   ├── anti_debug.js       # 反调试绕过
+│   │   └── platform.js         # 平台检测
+│   ├── inject/             # CDP 注入脚本
+│   ├── rules/              # 检测规则（secret_rules.json）
+│   └── ...
+└── userscripts/            # 用户自定义脚本目录
+```
 
 ## 截图
 
 ![Console in DevTools](screenshots/console.png)
 
 ![Sources in DevTools](screenshots/sources.png)
+
+## 致谢
+
+- [evi0s/WMPFDebugger](https://github.com/evi0s/WMPFDebugger) — 原始调试工具
+- [Spade-sec/First](https://github.com/Spade-sec/First) — 安全审计功能参考
 
 ## 免责声明
 
